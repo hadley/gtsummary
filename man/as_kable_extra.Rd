@@ -9,6 +9,7 @@ as_kable_extra(
   include = everything(),
   return_calls = FALSE,
   strip_md_bold = TRUE,
+  linebreak = FALSE,
   ...
 )
 }
@@ -28,6 +29,10 @@ as a list of expressions.}
 bold weight) in column labels and spanning headers are removed.
 Default is TRUE}
 
+\item{linebreak}{When \code{TRUE} character columns and column labels will
+be interpretted with \link[kableExtra:linebreak]{kableExtra::linebreak} allowing for
+line breaks to be inserted with \code{"\\n"} with PDF output. Default is \code{FALSE}}
+
 \item{...}{Additional arguments passed to \link[knitr:kable]{knitr::kable}}
 }
 \value{
@@ -37,14 +42,16 @@ A {kableExtra} object
 \Sexpr[results=rd, stage=render]{lifecycle::badge("experimental")}
 Function converts a gtsummary object to a knitr_kable + kableExtra object.
 A user can use this function if they wish to add customized formatting
-available via \link[knitr:kable]{knitr::kable} and {kableExtra}. Note that {gtsummary}
-uses the standard markdown \verb{**} to bold headers, and they may need to be
-changed manually with kableExtra output.
+available via \link[knitr:kable]{knitr::kable} and {kableExtra}.
 }
 \examples{
+# in PDF output, we can make the table with width of the output using
+# kableExtra::kable_styling(). This is helpful for scaling wide tables to fit
 trial \%>\%
   tbl_summary(by = trt) \%>\%
-  as_kable_extra()
+  modify_header(stat_by = "{level}\nN = {n}")
+  as_kable_extra() \%>\%
+  kableExtra::kable_styling(latex_options = "scale_down")
 }
 \seealso{
 Other gtsummary output types: 

@@ -1,6 +1,8 @@
 ---
 title: "gtsummary + R Markdown"
-output: html_document
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -20,11 +22,19 @@ The {gtsummary} package was written to be a companion to the [{gt} package](http
 Currently, {gt} supports **HTML** output, with **LaTeX** and **RTF** planned for the future.
 
 ```{r example}
-patient_characteristics <-
-  trial %>%
-  select(trt, age, grade, response) %>%
-  tbl_summary(by = trt)  
-patient_characteristics
+trial %>%
+  tbl_summary(by = trt) %>%
+  modify_header(stat_by = "{level}\nN = {n}") %>%
+  as_kable_extra(linebreak = TRUE, booktabs = TRUE, escape = FALSE, 
+                 include = 1:8) 
+
+
+knitr::knit_exit()
+# patient_characteristics <-
+#   trial %>%
+#   select(trt, age, grade, response) %>%
+#   tbl_summary(by = trt)  
+# patient_characteristics
 ```
 
 With HTML ouput, you can include complex tables with footnotes, indendtation, and spanning table headers.

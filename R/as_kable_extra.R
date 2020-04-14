@@ -3,23 +3,28 @@
 #' \Sexpr[results=rd, stage=render]{lifecycle::badge("experimental")}
 #' Function converts a gtsummary object to a knitr_kable + kableExtra object.
 #' A user can use this function if they wish to add customized formatting
-#' available via [knitr::kable] and {kableExtra}. Note that {gtsummary}
-#' uses the standard markdown `**` to bold headers, and they may need to be
-#' changed manually with kableExtra output.
+#' available via [knitr::kable] and {kableExtra}.
 #'
 #' @inheritParams as_kable
 #' @inheritParams as_flextable
+#' @param linebreak When `TRUE` character columns and column labels will
+#' be interpretted with [kableExtra::linebreak] allowing for
+#' line breaks to be inserted with `"\n"` with PDF output. Default is `FALSE`
 #' @export
 #' @return A {kableExtra} object
 #' @family gtsummary output types
 #' @author Daniel D. Sjoberg
 #' @examples
+#' # in PDF output, we can make the table with width of the output using
+#' # kableExtra::kable_styling(). This is helpful for scaling wide tables to fit
 #' trial %>%
 #'   tbl_summary(by = trt) %>%
-#'   as_kable_extra()
+#'   modify_header(stat_by = "{level}\nN = {n}") %>%
+#'   as_kable_extra() %>%
+#'   kableExtra::kable_styling(latex_options = "scale_down")
 
 as_kable_extra <- function(x, include = everything(), return_calls = FALSE,
-                           strip_md_bold = TRUE, ...) {
+                           strip_md_bold = TRUE, linebreak = FALSE, ...) {
   # must have kableExtra package installed to use this function ----------------
   if (!requireNamespace("kableExtra", quietly = TRUE)) {
     stop(paste0(
@@ -43,7 +48,8 @@ as_kable_extra <- function(x, include = everything(), return_calls = FALSE,
   }
 
   # creating list of kableExtra calls ------------------------------------------
-  kable_extra_calls <- table_header_to_kable_extra_calls(x = x, ...)
+  kable_extra_calls <-
+    table_header_to_kable_extra_calls(x = x, linebreak = linebreak, ...)
   if (return_calls == TRUE) return(kable_extra_calls)
 
   # converting to charcter vector ----------------------------------------------
@@ -67,12 +73,35 @@ as_kable_extra <- function(x, include = everything(), return_calls = FALSE,
     eval()
 }
 
-table_header_to_kable_extra_calls <- function(x, ...) {
+table_header_to_kable_extra_calls <- function(x, linebreak, ...) {
   table_header <- x$table_header
+  dots <- rlang::enexprs(...)
 
-  # getting kable calls
   kable_extra_calls <-
-    table_header_to_kable_calls(x = x, ...)
+    table_header_to_tibble_calls(x = x, col_labels = FALSE)
+
+  # fmt_missing ----------------------------------------------------------------
+  kable_extra_calls[["fmt_missing"]] <- expr(dplyr::mutate_all(~ifelse(is.na(.), "", .)))
+
+  # linebreak ------------------------------------------------------------------
+  if (linebreak == TRUE) {
+    kable_extra_calls[["linebreak"]] <-
+      expr(dplyr::mutate_if(is.character, kableExtra::linebreak))
+  }
+
+  # kable ----------------------------------------------------------------------
+  df_col_labels <-
+    dplyr::filter(table_header, .data$hide == FALSE)
+
+  if (linebreak == TRUE) {
+    kable_extra_calls[["kable"]] <- expr(
+      knitr::kable(col.names = kableExtra::linebreak(!!df_col_labels$label), !!!dots)
+    )
+  } else {
+    kable_extra_calls[["kable"]] <- expr(
+      knitr::kable(col.names = !!df_col_labels$label, !!!dots)
+    )
+  }
 
   # add_indent -----------------------------------------------------------------
   tab_style_indent <-
